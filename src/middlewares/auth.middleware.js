@@ -1,3 +1,5 @@
+import passport from "passport";
+
 export const auth = (req, res, next) => {
   passport.authenticate("current", { session: false }, (err, user) => {
     if (err || !user) {
