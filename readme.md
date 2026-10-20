@@ -72,3 +72,35 @@ proyecto-eventos/
 | POST | /api/sessions/login | Login (setea cookie con JWT) | 200 con los datos del usuario |
 | GET | /api/sessions/current | Usuario autenticado actual (requiere cookie válida) | 200 con el usuario |
 | POST | /api/sessions/logout | Cierra sesión | 200 |
+## Tickets e inscripciones
+
+### Modelo Ticket
+user (ref User), event (ref Event), status (pending | confirmed | cancelled),
+quantity, reservationCode, createdAt, cancelledAt. Solo referencias, sin objetos embebidos.
+
+### Endpoints
+| Método | Ruta | Acceso |
+|--------|------|--------|
+| POST | /api/events/:eid/tickets | autenticado |
+| GET | /api/tickets/my-tickets | autenticado (propios) |
+| GET | /api/events/:eid/tickets | organizer (propios eventos) o admin |
+| PATCH | /api/tickets/:tid/cancel | dueño del ticket o admin |
+
+### Flujo de inscripción
+Body: { "quantity": 2 } (opcional, por defecto 1). Se valida: evento existente, published,
+no cancelado/finalizado, fecha futura, quantity > 0, cupos suficientes y sin inscripción activa duplicada.
+Si todo es válido se crea el ticket confirmed y se envía un email de confirmación.
+
+### Estados y cancelación
+La cancelación es lógica: status = cancelled y se registra cancelledAt. Nunca se elimina el documento.
+No se puede cancelar un ticket ajeno (salvo admin) ni uno ya cancelado.
+
+### Regla de cupos
+Cupos ocupados = suma de quantity de tickets pending o confirmed. Los cancelled no ocupan cupo.
+
+### Variables de email
+MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS, MAIL_FROM (ver .env.example).
+
+### Instalación y pruebas
+npm install → copiar .env.example a .env → npm run dev. Probar con Postman o curl
+usando cookies (-c cookies.txt -b cookies.txt) tras hacer login.
