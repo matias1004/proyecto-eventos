@@ -13,7 +13,7 @@ export const registerUser = async ({ first_name, last_name, email, password }) =
   const existing = await usersRepository.findByEmail(normalizedEmail);
   if (existing) {
     const error = new Error("El email ya está registrado");
-    error.status = 400;
+    error.status = 409;
     throw error;
   }
 

@@ -1,4 +1,4 @@
-import { Ticket } from "../models/ticket.js";
+import { Ticket } from "../models/Ticket.js";
 
 export const createTicket = (data) => Ticket.create(data);
 
@@ -9,6 +9,9 @@ export const findByUser = (userId) =>
 
 export const findByEvent = (eventId) =>
   Ticket.find({ event: eventId }).populate("user", "first_name last_name email");
+
+export const findActiveByUserAndEvent = (userId, eventId) =>
+  Ticket.findOne({ user: userId, event: eventId, status: { $in: ["confirmed", "pending"] } });
 
 export const sumActiveQuantity = async (eventId) => {
   const result = await Ticket.aggregate([

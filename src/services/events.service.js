@@ -17,12 +17,32 @@ const assertOwnership = (event, user) => {
   }
 };
 
-export const createEvent = async (data, user) => {
-  for (const field of REQUIRED_FIELDS) {
-    if (data[field] === undefined || data[field] === null || data[field] === "") {
-      throw httpError(`El campo "${field}" es obligatorio`, 400);
+const validateEventData = (data, { partial = false } = {}) => {
+  if (!partial) {
+    for (const field of REQUIRED_FIELDS) {
+      if (data[field] === undefined || data[field] === null || data[field] === "") {
+        throw httpError(`El campo "${field}" es obligatorio`, 400);
+      }
     }
   }
+
+  if (data.date !== undefined) {
+    const date = new Date(data.date);
+    if (isNaN(date.getTime())) throw httpError("La fecha no es válida", 400);
+    if (date < new Date()) throw httpError("La fecha del evento no puede ser pasada", 400);
+  }
+
+  if (data.capacity !== undefined && Number(data.capacity) <= 0) {
+    throw httpError("La capacidad debe ser mayor a 0", 400);
+  }
+
+  if (data.price !== undefined && Number(data.price) < 0) {
+    throw httpError("El precio no puede ser negativo", 400);
+  }
+};
+
+export const createEvent = async (data, user) => {
+  validateEventData(data);
 
   const event = await eventsRepository.create({
     ...data,
@@ -48,7 +68,6 @@ export const listEvents = async (query) => {
   const page = Math.max(parseInt(query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 100);
   const skip = (page - 1) * limit;
-
   const sortField = sort || "date";
 
   const { data, total } = await eventsRepository.getMany(filter, { skip, limit, sort: sortField });
@@ -69,6 +88,12 @@ export const updateEvent = async (id, data, user) => {
 
   assertOwnership(event, user);
 
+  if (event.status === "cancelled") {
+    throw httpError("No se puede modificar un evento cancelado", 400);
+  }
+
+  validateEventData(data, { partial: true });
+
   const updated = await eventsRepository.update(id, data);
   return updated;
 };
@@ -83,7 +108,10 @@ export const updateEventStatus = async (id, status, user) => {
 
   assertOwnership(event, user);
 
-  // Cancelar = cambio de estado a "cancelled", nunca se borra el documento físicamente
+  if (event.status === "cancelled") {
+    throw httpError("No se puede modificar un evento cancelado", 400);
+  }
+
   const updated = await eventsRepository.update(id, { status });
   return updated;
 };

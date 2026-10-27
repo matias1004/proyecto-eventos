@@ -1,6 +1,6 @@
 import * as ticketsRepository from "../repositories/tickets.repository.js";
 import * as eventsRepository from "../repositories/events.repository.js";
-import { generateReservationCode } from "../utils/reservationcode.js";
+import { generateReservationCode } from "../utils/reservationCode.js";
 import { sendTicketConfirmation } from "../utils/mailer.js";
 
 const httpError = (message, status) => {
@@ -13,6 +13,15 @@ export const createTicket = async (eventId, data, user) => {
   const event = await eventsRepository.getById(eventId);
   if (!event) throw httpError("Evento no encontrado", 404);
 
+  if (event.status !== "published") {
+    throw httpError("Solo se puede inscribir a eventos publicados", 400);
+  }
+
+  const existing = await ticketsRepository.hasActiveTicket(user._id, event._id);
+  if (existing) {
+    throw httpError("Ya tenés una inscripción activa a este evento", 409);
+  }
+
   const quantity = Number(data.quantity) || 1;
   if (quantity < 1) throw httpError("La cantidad debe ser mayor a 0", 400);
 
@@ -20,7 +29,7 @@ export const createTicket = async (eventId, data, user) => {
   const available = event.capacity - used;
 
   if (quantity > available) {
-    throw httpError(`No hay cupo suficiente. Lugares disponibles: ${available}`, 400);
+    throw httpError(`No hay cupo suficiente. Lugares disponibles: ${available}`, 409);
   }
 
   const ticket = await ticketsRepository.create({
@@ -30,7 +39,6 @@ export const createTicket = async (eventId, data, user) => {
     reservationCode: generateReservationCode(),
   });
 
-  // El mail se dispara en segundo plano: si falla, no rompe la inscripción
   sendTicketConfirmation(user.email, ticket, event).catch((error) => {
     console.error("No se pudo enviar el mail de confirmación:", error.message);
   });
@@ -64,7 +72,7 @@ export const cancelTicket = async (ticketId, user) => {
   }
 
   if (ticket.status === "cancelled") {
-    throw httpError("El ticket ya estaba cancelado", 400);
+    throw httpError("El ticket ya estaba cancelado", 409);
   }
 
   return ticketsRepository.update(ticketId, {

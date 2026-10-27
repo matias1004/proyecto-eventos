@@ -1,24 +1,19 @@
 import * as usersDao from "../dao/users.dao.js";
-
-const toSafeUser = (user) => {
-  if (!user) return null;
-  const { password, __v, ...safe } = user.toObject();
-  return safe;
-};
+import { toUserDTO } from "../dto/user.dto.js";
 
 export const create = async (data) => {
   const user = await usersDao.createUser(data);
-  return toSafeUser(user);
+  return toUserDTO(user);
 };
 
 export const findByEmail = (email) => usersDao.findByEmail(email);
 
 export const findById = async (id) => {
   const user = await usersDao.findById(id);
-  return toSafeUser(user);
+  return toUserDTO(user);
 };
 
 export const findAll = async () => {
   const users = await usersDao.findAll();
-  return users.map(toSafeUser);
+  return users.map(toUserDTO);
 };

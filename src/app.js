@@ -29,11 +29,3 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
-import ticketRouter from './routes/ticket.routes.js';
-import { errorHandler } from './middlewares/error-handler.middleware.js';
-
-// ...después de tus otras rutas (/api/sessions, /api/events)
-app.use('/api', ticketRouter);
-
-// ...al final de todo
-app.use(errorHandler);
