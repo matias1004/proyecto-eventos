@@ -5,6 +5,7 @@ import { initPassport } from "./config/passport.config.js";
 import sessionsRouter from "./routes/sessions.router.js";
 import eventsRouter from "./routes/events.router.js";
 import ticketsRouter from "./routes/tickets.router.js";
+import { notFound, errorHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
 
@@ -23,9 +24,7 @@ app.use("/api/sessions", sessionsRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/tickets", ticketsRouter);
 
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  res.status(status).json({ status: "error", message: err.message || "Error interno del servidor" });
-});
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

@@ -1,15 +1,16 @@
 import * as eventsDao from "../dao/events.dao.js";
+import { toEventDTO } from "../dto/event.dto.js";
 
-export const create = (data) => eventsDao.createEvent(data);
+export const create = async (data) => toEventDTO(await eventsDao.createEvent(data));
 
-export const getById = (id) => eventsDao.findById(id);
+export const getById = async (id) => toEventDTO(await eventsDao.findById(id));
 
 export const getMany = async (filter, { skip, limit, sort }) => {
-  const [data, total] = await Promise.all([
+  const [events, total] = await Promise.all([
     eventsDao.find(filter, { skip, limit, sort }),
     eventsDao.countDocuments(filter),
   ]);
-  return { data, total };
+  return { data: events.map(toEventDTO), total };
 };
 
-export const update = (id, data) => eventsDao.findByIdAndUpdate(id, data);
+export const update = async (id, data) => toEventDTO(await eventsDao.findByIdAndUpdate(id, data));

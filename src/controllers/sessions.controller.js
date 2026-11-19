@@ -3,31 +3,38 @@ import { generateToken } from "../utils/jwt.js";
 
 const COOKIE_NAME = process.env.COOKIE_NAME || "currentUser";
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 1000 * 60 * 60 * 24, // 24 horas
+};
+
 export const register = (req, res, next) => {
-  passport.authenticate("register", { session: false }, (err, user, info) => {
+  passport.authenticate("register", { session: false }, (err, user, info, status) => {
     if (err) return next(err);
     if (!user) {
-      return res.status(400).json({ status: "error", message: info?.message || "No se pudo registrar el usuario" });
+      return res.status(info?.status || status || 400).json({
+        status: "error",
+        message: info?.message || "No se pudo registrar el usuario",
+      });
     }
     return res.status(201).json({ status: "success", payload: user });
   })(req, res, next);
 };
 
 export const login = (req, res, next) => {
-  passport.authenticate("login", { session: false }, (err, user, info) => {
+  passport.authenticate("login", { session: false }, (err, user, info, status) => {
     if (err) return next(err);
     if (!user) {
-      return res.status(401).json({ status: "error", message: info?.message || "Credenciales inválidas" });
+      return res.status(info?.status || status || 401).json({
+        status: "error",
+        message: info?.message || "Credenciales inválidas",
+      });
     }
 
     const token = generateToken({ id: user._id, role: user.role });
-
-    res.cookie(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24, // 24 horas
-    });
+    res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
 
     return res.status(200).json({
       status: "success",
